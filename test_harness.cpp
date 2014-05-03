@@ -2,8 +2,10 @@
 #include <iostream>
 #include <stdlib.h>
 #include <map>
+#include "utils/types.h"
 #include "utils/testing.h"
 #include <string.h>
+
 using std::cin;
 using std::cout;
 using std::endl;
