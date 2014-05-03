@@ -40,8 +40,6 @@ int main(){
 
 // Placeholder function for solving shikaku, just assigns an arbitrary result to it
 shikaku_result* solve_shikaku(shikaku_input input){
-	// Get results
-	// Create a board with an id 1 in all the positions and its count as 9 
 	shikaku_result* result = (shikaku_result*)malloc(sizeof(shikaku_result));
 	int **board;
 	board = (int **) malloc(sizeof(int *) * input.bwidth);
