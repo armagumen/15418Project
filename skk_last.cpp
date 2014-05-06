@@ -28,8 +28,10 @@ typedef struct{
 bool operator<(const point& first, const point& second){
 	return (first.x + 1000 * first.y) < (second.x + 1000 * second.y);
 }
-
+#define _BWIDTH 6
+#define _BHEIGHT 6
 static int board[6][6] = {{0}};
+static int cellboard[6][6] = {{0}};
 static int pval[] = {4,2,9,10,5,6};
 static int xval[] = {0,2,1,4,3,5};
 static int yval[] = {0,0,2,3,5,5};
@@ -149,6 +151,7 @@ void mustFill(int num){
 				else{
 					comp.insert(np);
 				}
+				cellboard[j][i]++;
 			}
 		}
 		if(start != 1){
@@ -175,7 +178,7 @@ set<point> getOnly(){
 	set<point> temp;
 	for(int j = 0;j < height; j++){
 		for(int i = 0; i < width; i++){
-			if(board[j][i] == 1){
+			if(cellboard[j][i] == 1){
 				point pt;
 				pt.x = i;
 				pt.y = j;
@@ -195,7 +198,7 @@ void onlyFill(int num, set<point> o){
 			for(int j = (*itt).y1; j < (*itt).y2+1;j++){
 				for(int i = (*itt).x1; i < (*itt).x2+1; i++){
 					point pt; pt.x = i; pt.y = j;
-					if(o.count(pt) != 0){
+					if(o.count(pt) == 1){
 						fillUp(num);
 						filled[num-1] = 1;
 						filnum +=  1;
@@ -204,6 +207,14 @@ void onlyFill(int num, set<point> o){
 				}
 			}
 		}
+}
+
+void reset_cellboard(){
+	for(int i = 0; i < _BWIDTH; i++){
+		for(int j = 0; j < _BHEIGHT; j++){
+			cellboard[i][j] = 0;
+		}
+	}
 }
 
 int main(){
@@ -236,17 +247,24 @@ int main(){
 			}
 		}
 
-		set<point> only = getOnly();
+		/*set<point> only = getOnly();
 		for(int i = 0; i < pp; i++){
 			if(filled[i] != 1){
-				onlyFill(filnum, only);
+				onlyFill(i+1, only);
 			}
 		}
-
+*/
 		printBoard();
 		//printf("??");
 		std::cout<<std::endl;
-
+		/*std::cout<<"CELLBOARD----"<<std::endl;
+		for(int i = 0; i < 6; i++){
+			for(int j = 0; j < 6; j++){
+				std::cout<<cellboard[i][j];
+			}
+			std::cout<<std::endl;
+		}	*/
+	  reset_cellboard();
 	}
 
 
