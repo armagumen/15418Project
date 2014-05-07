@@ -6,6 +6,7 @@
 #include <omp.h>
 #include <vector>
 #include <set>
+#include "CycleTimer.h"
 
 using std::vector;
 using std::set;
@@ -30,16 +31,21 @@ bool operator<(const point& first, const point& second){
 }
 #define _BWIDTH 6
 #define _BHEIGHT 6
-static int board[6][6] = {{0}};
-static int cellboard[6][6] = {{0}};
+#define _PVAL_SIZE (sizeof(pval)/sizeof(int))
+static int board[_BWIDTH][_BHEIGHT] = {{0}};
+static int cellboard[_BWIDTH][_BHEIGHT] = {{0}};
 static int pval[] = {4,2,9,10,5,6};
 static int xval[] = {0,2,1,4,3,5};
 static int yval[] = {0,0,2,3,5,5};
-static int width = 6;
-static int height = 6;
-static int pp = 6;
-static vector<rectangle> rects[6];
-static int filled[6] = {0};
+
+//static int pval[] = {4,9,6,4,6,9,6,4,6,4,4,2,4,4,8,3,8,4,6,4,3,9,6,4,3,4,6,6,6,4,4,4,2,6,2,6};
+//static int xval[] = {0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,4,4,4,5,5,5,6,6,6,7,7,7,7,8,8,8,8,9,9,9,9};
+//static int yval[] = {0,6,8,16,7,9,14,17,1,3,12,15,2,6,13,1,7,9,8,10,16,4,11,15,2,5,14,16,0,3,8,10,1,9,11,17};
+static int pp = _PVAL_SIZE;
+static int width = _BWIDTH;
+static int height = _BHEIGHT;
+static vector<rectangle> rects[_PVAL_SIZE];
+static int filled[_PVAL_SIZE] = {0};
 static int filnum = 0;
 
 
@@ -231,15 +237,19 @@ void reset_cellboard(){
 
 int main(){
 	initBoard();
+	#	pragma omp parallel for
 	for (int i = 0; i < pp; i++){
 		getRects(xval[i],yval[i],pval[i],i);
 	}
 
+	#	pragma omp parallel for  
 	for (int i = 0; i < pp; i++){
 		std::cout<<i<<std::endl;
 		getValid(i+1);
 	}
+	std::cout<<"pre while"<<std::endl;
 	while(filnum < pp){
+		#	pragma omp parallel for  
 		for(int i = 0; i < pp; i++){
 			if(rects[i].size() == 1 && filled[i] != 1){
 				fillUp(i+1);
@@ -247,12 +257,15 @@ int main(){
 				filnum++;
 			}
 		}
+
+		#	pragma omp parallel for  
 		for(int i = 0; i < pp; i++){
 			if(filled[i] != 1){
 				mustFill(i+1);
 			}
 		}
 
+		#	pragma omp parallel for  
 		for(int i = 0; i < pp; i++){
 			if(filled[i] != 1){
 				getValid(i+1);
@@ -260,6 +273,7 @@ int main(){
 		}
 
 		set<point> only = getOnly();
+		#	pragma omp parallel for  
 		for(int i = 0; i < pp; i++){
 			if(filled[i] != 1){
 				onlyFill(i+1, only);
