@@ -189,6 +189,17 @@ set<point> getOnly(){
 	return temp;
 }
 
+
+void fillUpInd(int num,int x1,int x2,int y1, int y2){
+	//rectangle r = rects[num-1].front();
+	for (int j = y1; j < y2+1;j++ ){
+		for (int i = x1; i < x2+1;i++){
+			board[j][i] = num;
+		}
+	}
+
+}
+
 void onlyFill(int num, set<point> o){
 	vector<rectangle>::iterator itt = rects[num-1].begin();
 	set<point> res;
@@ -199,7 +210,8 @@ void onlyFill(int num, set<point> o){
 				for(int i = (*itt).x1; i < (*itt).x2+1; i++){
 					point pt; pt.x = i; pt.y = j;
 					if(o.count(pt) == 1){
-						fillUp(num);
+						fillUpInd(num,(*itt).x1,(*itt).x2,
+									(*itt).y1, (*itt).y2);
 						filled[num-1] = 1;
 						filnum +=  1;
 						return;				
@@ -247,13 +259,14 @@ int main(){
 			}
 		}
 
-		/*set<point> only = getOnly();
+		set<point> only = getOnly();
 		for(int i = 0; i < pp; i++){
 			if(filled[i] != 1){
 				onlyFill(i+1, only);
+
 			}
 		}
-*/
+
 		printBoard();
 		//printf("??");
 		std::cout<<std::endl;
