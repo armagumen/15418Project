@@ -367,11 +367,9 @@ int solve_mpi(int *argc, char ***argv){
 	}
 
 	total_squares = ids.size();
-	int iterations = 0;
 	
 	//if(rank == _PROC)printBoard();
-	while(isAll() == 0 && iterations < 4){
-		iterations++;
+	while(isAll() == 0){
 		reset_cellboard();
 
 		// Get the valid rectangles, for each ID
