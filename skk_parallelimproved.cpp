@@ -297,27 +297,55 @@ int isAll(){
 	return 1;
 }
 
+int solve_mpi(){
+	int size;  // number of processes
+ 	int rank;  // current process id
 
+	MPI_Init(& argc, & argv);
+	MPI_Comm_rank(MPI_COMM_WORLD, & rank); // get id of current process
+  	MPI_Comm_size(MPI_COMM_WORLD, & size); // get number of processes
+  	
+  	vector<rectangle> rects; // one input number per processor
+  	vector<int> ids;
+  	initBoard();
+
+  	// Make each processor generate it's rectangles, and the ids it is
+  	// responsible for
+  	for(int it = 0; it < pp; it += size){
+  		if((it + rank) < pp){
+			getRects(xval[it],yval[it],pval[it],it);
+			ids.push_back(it);
+		}
+	}
+
+	// Get the valid rectangles
+	for(int it = 0; it < pp; it += size){
+  		if((it + rank) < pp){
+			getValid(it+1);
+		}
+	}	
+
+	for (int i = 0; i < pp; i++){
+		
+	}
+
+
+  	if(rank == 0){ // executed only by the main process
+		
+
+  	}
+  	else{ // executed by all but the main process
+
+  	}
+  	MPI_Finalize();
+}
 int main(){
-	initBoard();
-
-    //omp_set_num_threads(1);
-    #pragma omp parallel for
-	for (int i = 0; i < pp; i++){
-		getRects(xval[i],yval[i],pval[i],i);
-	}
+	solve_mpi();
+	
 
     #pragma omp parallel for
-	for (int i = 0; i < pp; i++){
-		//std::cout<<i<<std::endl;
-		getValid(i+1);
-	}
 
-	//for(int i =0; i < pp ; i++){
-//		std::cout<<rects[i].size()<<std::endl;
-//		std::cout<<22222<<std::endl;
-//
-//	}
+
     double start_time = CycleTimer::currentSeconds();
 	while(filnum < pp){
         #pragma omp parallel for
