@@ -34,7 +34,7 @@ typedef struct{
 bool operator<(const point& first, const point& second){
 	return (first.x + 1000 * first.y) < (second.x + 1000 * second.y);
 }
-
+/*
 #define _BWIDTH 6
 #define _BHEIGHT 6
 static int board[6][6] = {{0}};
@@ -45,6 +45,22 @@ static int yval[] = {0,0,2,3,5,5};
 static int width = _BWIDTH;
 static int height = _BHEIGHT;
 static int pp = 6;
+*/
+
+
+#define _BWIDTH 10
+#define _BHEIGHT 10
+static int board[10][10] = {{0}};
+static int cellboard[10][10] = {{0}};
+static int pval[] = {7,8,9,5,5,4,6,8,10,9,3,6,5,2,6,8};
+static int xval[] = {0,0,1,1,2,2,3,3,6,6,7,7,8,8,9,9};
+static int yval[] = {0,9,4,5,1,8,3,6,3,6,1,8,4,5,0,9};
+static int width = 10;
+static int height = 10;
+static int pp = 16;
+
+
+
 
 static vector< vector<rectangle> > rects; // input/size numbers per processor
 static vector<int> ids;
