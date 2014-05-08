@@ -8,11 +8,15 @@
 #include <set>
 #include <iterator>
 #include <algorithm>
+#include "CycleTimer.h"
 
+using std::cin;
+using std::cout;
+using std::endl;
 using std::vector;
 using std::set;
 using std::string;
-#include "CycleTimer.h"
+
 
 typedef struct{
 	int x1;
@@ -24,8 +28,7 @@ typedef struct{
 typedef struct{
 	int x;
 	int y;
-
-}point;
+} point;
 
 bool operator<(const point& first, const point& second){
 	return (first.x + 1000 * first.y) < (second.x + 1000 * second.y);
@@ -38,44 +41,13 @@ static int cellboard[6][6] = {{0}};
 static int pval[] = {4,2,9,10,5,6};
 static int xval[] = {0,2,1,4,3,5};
 static int yval[] = {0,0,2,3,5,5};
-static int width = 6;
-static int height = 6;
+static int width = _BWIDTH;
+static int height = _BHEIGHT;
 static int pp = 6;
-static vector<rectangle> rects[6];
-static int filled[6] = {0};
-static int filnum = 0;
 
-
-/*
-#define _BWIDTH 10
-#define _BHEIGHT 18
-static int board[10][18] = {{0}};
-static int cellboard[10][18] = {{0}};
-static int pval[] = {4,9,6,4,6,9,6,4,6,4,4,2,4,4,8,3,8,4,6,4,3,9,6,4,3,4,6,6,6,4,4,4,2,6,2,6};
-static int xval[] = {0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,4,4,4,5,5,5,6,6,6,7,7,7,7,8,8,8,8,9,9,9,9};
-static int yval[] = {0,6,8,16,7,9,14,17,1,3,12,15,2,6,13,1,7,9,8,10,16,4,11,15,2,5,14,16,0,3,8,10,1,9,11,17};
-static int width = 10;
-static int height = 18;
-static int pp = 36;
-static vector<rectangle> rects[36];
-static int filled[36] = {0};
-static int filnum = 0;
-*/
-/*
-#define _BWIDTH 10
-#define _BHEIGHT 10
-static int board[10][10] = {{0}};
-static int cellboard[10][10] = {{0}};
-static int pval[] = {7,8,9,5,5,4,6,8,10,9,3,6,5,2,6,8};
-static int xval[] = {0,0,1,1,2,2,3,3,6,6,7,7,8,8,9,9};
-static int yval[] = {0,9,4,5,1,8,3,6,3,6,1,8,4,5,0,9};
-static int width = 10;
-static int height = 10;
-static int pp = 16;
-static vector<rectangle> rects[16];
-static int filled[16] = {0};
-static int filnum = 0;
-*/
+static vector< vector<rectangle> > rects; // input/size numbers per processor
+static vector<int> ids;
+static vector<int> filled;
 
 void initBoard(){
     #pragma omp parallel for
@@ -99,11 +71,11 @@ void printBoard(){
 
 }
 
-void getRects(int x, int y, int p,int id){
+vector<rectangle> getRects(int x, int y, int p){
+	vector<rectangle> rects;
 	for (int i = 1; i < p+1;i++){
 		if (p %i == 0){
 			int j = p / i;
-
 			for (int p1 = 0; p1 < i; p1++){
 				for (int p2 = 0; p2 < j; p2++){
 					int one = x - p1;
@@ -117,20 +89,21 @@ void getRects(int x, int y, int p,int id){
 						newrect.y1 = two;
 						newrect.x2 = three;
 						newrect.y2 = four;
-						// ARmando added id here, instead of i
-						rects[id].push_back(newrect);
+						rects.push_back(newrect);
 					}
 				}
 			}
 		}
 	}
-
+	return rects;
 }
 
-void getValid(int num){
+void getValid(int num, vector<rectangle>* rects){
 
-	vector<rectangle>::iterator itt = rects[num-1].begin();
-	for(; itt != rects[num-1].end();itt++){
+	vector<rectangle>::iterator itt = rects->begin();
+	vector<int>::iterator ids = ids->begin();
+
+	for(; itt != rects->end(); itt++, ids++){
 		int check = 1;
 		for(int j = (*itt).y1; j < (*itt).y2+1;j++){
 			for(int i = (*itt).x1; i < (*itt).x2+1; i++){
@@ -142,7 +115,7 @@ void getValid(int num){
 			}
 		}
 		if(check == 0){
-			itt = rects[num-1].erase(itt);
+			itt = rects->erase(itt);
 			itt--;
 		}
 
@@ -151,8 +124,7 @@ void getValid(int num){
 
 }
 
-void fillUp(int num){
-	rectangle r = rects[num-1].front();
+void fillUp(int num, rectangle r){
 	for (int j = r.y1; j < r.y2+1;j++ ){
 		for (int i = r.x1; i < r.x2+1;i++){
 			board[j][i] = num;
@@ -161,29 +133,22 @@ void fillUp(int num){
 
 }
 
-void fillSet(set<point> res,int num){
+void fillSet(set<point> res, int num){
 	std::set<point>::iterator it1 = res.begin();
 	for(; it1 != res.end();it1++){
 		board[(*it1).y][(*it1).x] = num;
 	}
 }
 
-void mustFill(int num){
-	vector<rectangle>::iterator itt = rects[num-1].begin();
+void mustFill(int index){
+	vector<rectangle>::iterator itt = rects[index].begin();
 	int start = 0;
 	set<point> comp;
-	//std::cout<<rects[num-1].size()<<std::endl;
-	//std::cout<<j<<std::endl;
-	//std::cout<<11111<<std::endl;
 	set<point> res;
-	//std::cout<<100000001<<std::endl;
-	//for(; itt != rects[num-1].end();itt++){
-	for(int k = 0; k < rects[num-1].size();k++){
-		rectangle currec = rects[num-1].at(k);
+
+	for(int k = 0; k < rects[index].size(); k++){
+		rectangle currec = rects[index].at(k);
 		start++;
-		//std::cout<<start<<std::endl;
-		//std::cout<<101010101<<std::endl;
-		//set<point> comp;
 		comp.clear();
 		for(int j = currec.y1; j < currec.y2+1;j++){
 			for(int i = currec.x1; i < currec.x2+1; i++){
@@ -200,40 +165,19 @@ void mustFill(int num){
 			}
 		}
 		if(start != 1){
-			//std::cout<<5<<std::endl;
 			std::vector<point> v;
 			set_intersection(res.begin(), res.end(), comp.begin(),
 						 comp.end(), std::back_inserter(v));
 			set<point> ss(v.begin(),v.end());
 			res = ss;
-			/*
-			std::set<point>::iterator it1 = res.begin();
-			std::set<point>::iterator it2 = comp.begin();
-			while ( (it1 != res.end()) && (it2 != comp.end()) ) {
-			    if (*it1 < *it2) {
-			    	std::cout<<8<<std::endl;
-			    	res.erase(it1++);
-			    } else if (*it2 < *it1) {
-			    	std::cout<<9<<std::endl;
-			    	++it2;
-			    } else { // *it1 == *it2
-			    	std::cout<<10<<std::endl;
-			            ++it1;
-			            ++it2;
-			    }
-			}
-			std::cout<<6<<std::endl;
-			res.erase(it1, res.end());*/
 		}
 
 	}
-	//std::cout<<7<<std::endl;
-	fillSet(res,num);
+	fillSet(res, ids[index]);
 }
 
 set<point> getOnly(){
 	set<point> temp;
-    #pragma omp parallel for
 	for(int j = 0;j < height; j++){
 		for(int i = 0; i < width; i++){
 			if(cellboard[j][i] == 1){
@@ -258,21 +202,17 @@ void fillUpInd(int num,int x1,int x2,int y1, int y2){
 
 }
 
-void onlyFill(int num, set<point> o){
-	vector<rectangle>::iterator itt = rects[num-1].begin();
+void onlyFill(int index, set<point> o){
+	vector<rectangle>::iterator itt = rects[index].begin();
 	set<point> res;
-		for(; itt != rects[num-1].end();itt++){
-			set<point> comp;
-			comp.clear();
+		for(; itt != rects[index.end();itt++){
 			for(int j = (*itt).y1; j < (*itt).y2+1;j++){
 				for(int i = (*itt).x1; i < (*itt).x2+1; i++){
 					point pt; pt.x = i; pt.y = j;
 					if(o.count(pt) == 1){
-						fillUpInd(num,(*itt).x1,(*itt).x2,
+						fillUpInd(ids[index],(*itt).x1,(*itt).x2,
 									(*itt).y1, (*itt).y2);
-						filled[num-1] = 1;
-                        #pragma omp atomic update
-						filnum++;
+						filled[index] = 1;
 						return;				
 					}
 				}
@@ -297,98 +237,158 @@ int isAll(){
 	return 1;
 }
 
+int sync_board(int rank, int total_procs){
+	// Convert the board to an array and fill it
+	int* board_buffer = malloc(sizeof(int) * width * height);
+	int* cell_buffer = malloc(sizeof(int) * width * height);
+	for(int i = 0; i < height; i++){
+		for(int j = 0; j < width; j++){
+			board_buffer[(i * width) + j] = board[i][j];
+			cell_buffer[(i * width) + j] = cellboard[i][j];
+		}
+	}
+
+	// Allocate a buffer for all the elements
+	int total_rcv_count = width * height * total_procs;
+	int* all_buffer = malloc(sizeof(int) * total_rcv_count);
+
+	// All to all the boards
+	MPI_Alltoall(board_buffer, width * height, MPI_INT, all_buffer, 
+		width * height, MPI_INT, MPI_COMM_WORLD);
+
+	// Create the new board
+	for(int p = 0; p < total_procs; p++){
+		for(int i = 0; i < height; i++){
+			for(int j = 0; j < width; j++){
+				if(p == 0){ // Just copy the first ones
+					board[i][j] = all_buffer[(p * width * height) + (i * width + j)];
+				}
+				else{ // Then add up the following
+					board[i][j] += all_buffer[(p * width * height) + (i * width + j)];
+				}
+
+			}
+		}
+	}
+
+	// All to all the cellboards
+	MPI_Alltoall(cell_buffer, width * height, MPI_INT, all_buffer, 
+		width * height, MPI_INT, MPI_COMM_WORLD);
+
+	// Create the new cellboard
+	for(int p = 0; p < total_procs; p++){
+		for(int i = 0; i < height; i++){
+			for(int j = 0; j < width; j++){
+				if(p == 0){ // Just copy the first ones
+					cellboard[i][j] = all_buffer[(p * width * height) + (i * width + j)];
+				}
+				else{ // Then add up the following
+					cellboard[i][j] += all_buffer[(p * width * height) + (i * width + j)];
+				}
+
+			}
+		}
+	}
+
+	// Free buffer memory
+	free(board_buffer);
+	free(cell_buffer);
+	free(all_buffer);
+}
+
 int solve_mpi(){
 	int size;  // number of processes
  	int rank;  // current process id
+  	int squares_completed  = 0;
+  	int total_squares;
 
+  	// MPI Initialization
 	MPI_Init(& argc, & argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, & rank); // get id of current process
   	MPI_Comm_size(MPI_COMM_WORLD, & size); // get number of processes
   	
-  	vector<rectangle> rects; // one input number per processor
-  	vector<int> ids;
+  	// Set the ids on the board
   	initBoard();
 
-  	// Make each processor generate it's rectangles, and the ids it is
+  	// Make each processor generate it's rectangles, and the IDs it is
   	// responsible for
-  	for(int it = 0; it < pp; it += size){
-  		if((it + rank) < pp){
-			getRects(xval[it],yval[it],pval[it],it);
-			ids.push_back(it);
+  	for(int i = 0; i < pp; i+=size){
+  		int index = i + rank;
+  		if(index < pp){
+			rects.push_back(getRects(xval[index],yval[index],pval[index]));
+			ids.push_back(index);
+			filled.push_back(0);
 		}
 	}
 
-	// Get the valid rectangles
-	for(int it = 0; it < pp; it += size){
-  		if((it + rank) < pp){
-			getValid(it+1);
+	total_squares = ids.size();
+	while(isAll() == 0){
+		reset_cellboard();
+
+		// Get the valid rectangles, for each ID
+		for(int i = 0; i < total_squares; i ++){
+			if(filled[i] != 1){
+				getValid(ids[i],&(rects[i]);
+			}
+		}	
+		
+		// If one ID has only one rectangle, fill it up rightaway
+		for(int i = 0; i < total_squares; i++){
+			if(rects[i].size() == 1 && filled[i] != 1){
+				fillUp(ids[i], rects[i]); // Fill the positions of a rectangle, with an id
+				filled[i] = 1;
+				squares_completed++;
+			}
 		}
-	}	
+		/*
+		 * OPTIMIZATION
+		 * Board may have changed, but no need to send yet, since the ones filled
+		 * are unique, and nothing interferes with them
+		 */
+		 
+		// Calculate board positions where all rectangles intersect, for a specific ID,
+		// and fill them up
+		for(int i = 0; i < total_squares; i++){
+			if(filled[i] != 1){
+				mustFill(i);
+			}
+		}
 
-	for (int i = 0; i < pp; i++){
-		
+		// UPDATE BOARD IN ALL PROCESSES 
+		sync_board(rank, size);
+
+		// Remove invalid rectangles, for each ID
+		for(int i = 0; i < total_squares; i ++){
+			if(filled[i] != 1){
+				getValid(ids[i],&(rects[i]);
+			}	
+		}
+
+		// Check board positions covered by only one rectangle
+		set<point> only = getOnly();
+
+		// ... and fill the board with such rectangles
+		for(int i = 0; i < total_squares; i++){
+			if(filled[i] != 1){
+				onlyFill(i, only);
+
+			}
+		}
+
+		// UPDATE BOARD IN ALL PROCESSES 
+		sync_board(rank, size);
+		if(rank == 0){ // executed only by the main process
+			printBoard();
+  		}
 	}
-
-
-  	if(rank == 0){ // executed only by the main process
-		
-
-  	}
-  	else{ // executed by all but the main process
-
-  	}
   	MPI_Finalize();
 }
+
 int main(){
-	solve_mpi();
-	
-
-    #pragma omp parallel for
-
 
     double start_time = CycleTimer::currentSeconds();
-	while(filnum < pp){
-        #pragma omp parallel for
-		for(int i = 0; i < pp; i++){
-			if(rects[i].size() == 1 && filled[i] != 1){
-				fillUp(i+1);
-				filled[i] = 1;
-                #pragma omp atomic update
-				filnum++;
-			}
-		}
-		
-        #pragma omp parallel for
-		for(int i = 0; i < pp; i++){
-			if(filled[i] != 1){
-				mustFill(i+1);
-			}
-		}
-
-        #pragma omp parallel for
-		for(int i = 0; i < pp; i++){
-			if(filled[i] != 1){
-				getValid(i+1);
-			}
-		}
-
-		set<point> only = getOnly();
-    
-        #pragma omp parallel for
-		for(int i = 0; i < pp; i++){
-			if(filled[i] != 1){
-				onlyFill(i+1, only);
-
-			}
-		}
-
-		//printBoard();
-		//std::cout<<std::endl;
-
-		//printf("filnum %d",filnum);
-	  	reset_cellboard();
-	  	if (isAll() == 1) break;
-	}
+	
+	solve_mpi();
 
     double end_time = CycleTimer::currentSeconds();
     printf("time: %.16f sec\n", end_time - start_time);
