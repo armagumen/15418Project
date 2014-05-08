@@ -8,7 +8,8 @@
 #include <set>
 #include <iterator>
 #include <algorithm>
-#include "CycleTimer.h"
+#include "../utils/CycleTimer.h"
+#include <mpi.h>
 
 using std::cin;
 using std::cout;
@@ -48,12 +49,13 @@ static int pp = 6;
 static vector< vector<rectangle> > rects; // input/size numbers per processor
 static vector<int> ids;
 static vector<int> filled;
-
+static vector<int> allids;
 void initBoard(){
-    #pragma omp parallel for
 	for(int i = 0; i < sizeof(xval) / 4; i++){
 		//board[yval[i]][xval[i]] = 1;
 		board[yval[i]][xval[i]] = i+1;
+		point pt;pt.x = xval[i]; pt.y = yval[i];
+		allids.push_back(i+1);
 	}
 
 }
@@ -101,9 +103,8 @@ vector<rectangle> getRects(int x, int y, int p){
 void getValid(int num, vector<rectangle>* rects){
 
 	vector<rectangle>::iterator itt = rects->begin();
-	vector<int>::iterator ids = ids->begin();
 
-	for(; itt != rects->end(); itt++, ids++){
+	for(; itt != rects->end(); itt++){
 		int check = 1;
 		for(int j = (*itt).y1; j < (*itt).y2+1;j++){
 			for(int i = (*itt).x1; i < (*itt).x2+1; i++){
@@ -205,7 +206,7 @@ void fillUpInd(int num,int x1,int x2,int y1, int y2){
 void onlyFill(int index, set<point> o){
 	vector<rectangle>::iterator itt = rects[index].begin();
 	set<point> res;
-		for(; itt != rects[index.end();itt++){
+		for(; itt != rects[index].end();itt++){
 			for(int j = (*itt).y1; j < (*itt).y2+1;j++){
 				for(int i = (*itt).x1; i < (*itt).x2+1; i++){
 					point pt; pt.x = i; pt.y = j;
@@ -236,11 +237,20 @@ int isAll(){
 	}
 	return 1;
 }
+//static int board_buffer[36];
+//static int cell_buffer[36];
+//static int all_buffer[72];
 
 int sync_board(int rank, int total_procs){
 	// Convert the board to an array and fill it
-	int* board_buffer = malloc(sizeof(int) * width * height);
-	int* cell_buffer = malloc(sizeof(int) * width * height);
+	int* board_buffer = (int*) malloc(sizeof(int) * width * height);
+	int* cell_buffer = (int*) malloc(sizeof(int) * width * height);
+	for(int i = 0; i < width*height; i++){
+		board_buffer[i] = 0;
+		cell_buffer[i] = 0;
+	}
+	
+	
 	for(int i = 0; i < height; i++){
 		for(int j = 0; j < width; j++){
 			board_buffer[(i * width) + j] = board[i][j];
@@ -250,29 +260,38 @@ int sync_board(int rank, int total_procs){
 
 	// Allocate a buffer for all the elements
 	int total_rcv_count = width * height * total_procs;
-	int* all_buffer = malloc(sizeof(int) * total_rcv_count);
-
+	int* all_buffer = (int*) malloc(sizeof(int) * total_rcv_count);
+	
+	for(int i = 0; i < width*height*total_procs; i++){
+		all_buffer[i] = 0;	
+	}
+	
 	// All to all the boards
-	MPI_Alltoall(board_buffer, width * height, MPI_INT, all_buffer, 
+	MPI_Allgather(board_buffer, width * height, MPI_INT, all_buffer, 
 		width * height, MPI_INT, MPI_COMM_WORLD);
 
+	/*if(rank == 0){for(int i = 0; i < total_rcv_count; i++){
+		cout<<all_buffer[i]<<"-";
+	}
+	cout<<endl;}
+*/
+	// Clear the board 
+	for(int i = 0; i < height; i++)for(int j = 0; j < width; j++){
+		board[i][j] = 0;
+	}
 	// Create the new board
 	for(int p = 0; p < total_procs; p++){
 		for(int i = 0; i < height; i++){
 			for(int j = 0; j < width; j++){
-				if(p == 0){ // Just copy the first ones
-					board[i][j] = all_buffer[(p * width * height) + (i * width + j)];
-				}
-				else{ // Then add up the following
-					board[i][j] += all_buffer[(p * width * height) + (i * width + j)];
-				}
-
+				point pt; pt.x = j; pt.y = i;
+					if(board[i][j] == 0){
+						board[i][j] = all_buffer[(p * width * height) + (i * width + j)];
+					}
 			}
 		}
 	}
-
 	// All to all the cellboards
-	MPI_Alltoall(cell_buffer, width * height, MPI_INT, all_buffer, 
+	MPI_Allgather(cell_buffer, width * height, MPI_INT, all_buffer, 
 		width * height, MPI_INT, MPI_COMM_WORLD);
 
 	// Create the new cellboard
@@ -285,57 +304,71 @@ int sync_board(int rank, int total_procs){
 				else{ // Then add up the following
 					cellboard[i][j] += all_buffer[(p * width * height) + (i * width + j)];
 				}
+		
 
 			}
 		}
 	}
 
-	// Free buffer memory
+	//Free buffer memory
 	free(board_buffer);
 	free(cell_buffer);
 	free(all_buffer);
 }
+#define _PROC 0
+int solve_mpi(int *argc, char ***argv){
 
-int solve_mpi(){
+	
 	int size;  // number of processes
  	int rank;  // current process id
-  	int squares_completed  = 0;
-  	int total_squares;
+  int squares_completed  = 0;
+  int total_squares;
 
   	// MPI Initialization
-	MPI_Init(& argc, & argv);
+	MPI_Init(argc, argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, & rank); // get id of current process
-  	MPI_Comm_size(MPI_COMM_WORLD, & size); // get number of processes
+  MPI_Comm_size(MPI_COMM_WORLD, & size); // get number of processes
   	
   	// Set the ids on the board
   	initBoard();
-
-  	// Make each processor generate it's rectangles, and the IDs it is
+		// Make each processor generate it's rectangles, and the IDs it is
   	// responsible for
   	for(int i = 0; i < pp; i+=size){
   		int index = i + rank;
   		if(index < pp){
 			rects.push_back(getRects(xval[index],yval[index],pval[index]));
-			ids.push_back(index);
+			ids.push_back(allids[index]);
 			filled.push_back(0);
 		}
 	}
+	if(rank == _PROC){
+	cout<<"size: "<<size<<endl;
+	cout<<"rank: "<<rank<<endl;
+	cout<<"printing ids"<<endl;
+	for(int i = 0; i < rects.size(); i++){
+		cout<<ids[i]<<endl;	
+	}
+	}
 
 	total_squares = ids.size();
-	while(isAll() == 0){
+	int iterations = 0;
+	
+	//if(rank == _PROC)printBoard();
+	while(isAll() == 0 && iterations < 4){
+		iterations++;
 		reset_cellboard();
 
 		// Get the valid rectangles, for each ID
 		for(int i = 0; i < total_squares; i ++){
 			if(filled[i] != 1){
-				getValid(ids[i],&(rects[i]);
+				getValid(ids[i],&(rects[i]));
 			}
 		}	
 		
 		// If one ID has only one rectangle, fill it up rightaway
 		for(int i = 0; i < total_squares; i++){
 			if(rects[i].size() == 1 && filled[i] != 1){
-				fillUp(ids[i], rects[i]); // Fill the positions of a rectangle, with an id
+				fillUp(ids[i], rects[i].front()); // Fill the positions of a rectangle, with an id
 				filled[i] = 1;
 				squares_completed++;
 			}
@@ -345,7 +378,7 @@ int solve_mpi(){
 		 * Board may have changed, but no need to send yet, since the ones filled
 		 * are unique, and nothing interferes with them
 		 */
-		 
+		
 		// Calculate board positions where all rectangles intersect, for a specific ID,
 		// and fill them up
 		for(int i = 0; i < total_squares; i++){
@@ -356,11 +389,11 @@ int solve_mpi(){
 
 		// UPDATE BOARD IN ALL PROCESSES 
 		sync_board(rank, size);
-
+		//if(rank == _PROC)printBoard();
 		// Remove invalid rectangles, for each ID
 		for(int i = 0; i < total_squares; i ++){
 			if(filled[i] != 1){
-				getValid(ids[i],&(rects[i]);
+				getValid(ids[i],&(rects[i]));
 			}	
 		}
 
@@ -377,18 +410,17 @@ int solve_mpi(){
 
 		// UPDATE BOARD IN ALL PROCESSES 
 		sync_board(rank, size);
-		if(rank == 0){ // executed only by the main process
-			printBoard();
-  		}
+		if(rank == _PROC)printBoard();
 	}
+	//cout<<"proc ended"<<endl;
   	MPI_Finalize();
 }
 
-int main(){
+int main(int argc, char **argv){
 
     double start_time = CycleTimer::currentSeconds();
 	
-	solve_mpi();
+	solve_mpi(&argc, &argv);
 
     double end_time = CycleTimer::currentSeconds();
     printf("time: %.16f sec\n", end_time - start_time);
