@@ -47,7 +47,7 @@ static int height = _BHEIGHT;
 static int pp = 6;
 */
 
-
+/*
 #define _BWIDTH 10
 #define _BHEIGHT 10
 static int board[10][10] = {{0}};
@@ -58,8 +58,8 @@ static int yval[] = {0,9,4,5,1,8,3,6,3,6,1,8,4,5,0,9};
 static int width = 10;
 static int height = 10;
 static int pp = 16;
+*/
 
-/*
 #define _BWIDTH 10
 #define _BHEIGHT 18
 static int board[10][18] = {{0}};
@@ -70,7 +70,7 @@ static int yval[] = {0,6,8,16,7,9,14,17,1,3,12,15,2,6,13,1,7,9,8,10,16,4,11,15,2
 static int width = 10;
 static int height = 18;
 static int pp = 36;
-*/
+
 
 
 
