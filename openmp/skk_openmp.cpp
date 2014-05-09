@@ -12,7 +12,7 @@
 using std::vector;
 using std::set;
 using std::string;
-#include "CycleTimer.h"
+#include "../utils/CycleTimer.h"
 
 typedef struct{
 	int x1;

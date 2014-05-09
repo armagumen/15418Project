@@ -6,7 +6,7 @@
 #include <omp.h>
 #include <vector>
 #include <set>
-#include "CycleTimer.h"
+#include "utils/CycleTimer.h"
 
 using std::vector;
 using std::set;
