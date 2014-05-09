@@ -163,7 +163,7 @@ void fillUp(int num, rectangle r){
 			board[j][i] = num;
 			changes_x.push_back(i);
 			changes_y.push_back(j);
-			changes_id.push_back[num];
+			changes_id.push_back(num);
 		}
 	}
 
@@ -173,9 +173,9 @@ void fillSet(set<point> res, int num){
 	std::set<point>::iterator it1 = res.begin();
 	for(; it1 != res.end();it1++){
 		board[(*it1).y][(*it1).x] = num;
-		changes_x.push_back[(*it1).x];
-		changes_y.push_back[(*it1).y];
-		changes_id.push_back[num];
+		changes_x.push_back((*it1).x);
+		changes_y.push_back((*it1).y);
+		changes_id.push_back(num);
 	}
 }
 
@@ -238,7 +238,7 @@ void fillUpInd(int num,int x1,int x2,int y1, int y2){
 			board[j][i] = num;
 			changes_x.push_back(i);
 			changes_y.push_back(j);
-			changes_id.push_back[num];
+			changes_id.push_back(num);
 		}
 	}
 
@@ -310,7 +310,7 @@ int sync_board(int rank, int total_procs){
 		rcv_counts, MPI_INT, MPI_COMM_WORLD);
 	MPI_Allgather(&(changes_y[0]), send_count, MPI_INT, updates_y, 
 		rcv_counts, MPI_INT, MPI_COMM_WORLD);
-	MPI_Allgather(&(changes_num[0]), send_count, MPI_INT, updates_num, 
+	MPI_Allgather(&(changes_id[0]), send_count, MPI_INT, updates_num, 
 		rcv_counts, MPI_INT, MPI_COMM_WORLD);
 	
 	// Update the board
