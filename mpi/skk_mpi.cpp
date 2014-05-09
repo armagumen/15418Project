@@ -359,7 +359,9 @@ int solve_mpi(int *argc, char ***argv){
   	
   	// Set the ids on the board
   	initBoard();
-		// Make each processor generate it's rectangles, and the IDs it is
+
+  	if(rank == 0) double start_time = CycleTimer::currentSeconds();
+	// Make each processor generate it's rectangles, and the IDs it is
   	// responsible for
   	for(int i = 0; i < pp; i+=size){
   		int index = i + rank;
@@ -440,16 +442,19 @@ int solve_mpi(int *argc, char ***argv){
 	}
 	//cout<<"proc ended"<<endl;
   	MPI_Finalize();
+  	if(rank == 0){
+    	double end_time = CycleTimer::currentSeconds();
+    	printf("time: %.16f sec\n", end_time - start_time);
+  	}
 }
 
 int main(int argc, char **argv){
 
-    double start_time = CycleTimer::currentSeconds();
+   
 	
 	solve_mpi(&argc, &argv);
 
-    double end_time = CycleTimer::currentSeconds();
-    printf("time: %.16f sec\n", end_time - start_time);
+
 
 
 
