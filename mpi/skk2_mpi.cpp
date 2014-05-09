@@ -47,7 +47,7 @@ static int height = _BHEIGHT;
 static int pp = 6;
 */
 
-
+/*
 #define _BWIDTH 10
 #define _BHEIGHT 10
 static int board[10][10] = {{0}};
@@ -58,7 +58,7 @@ static int yval[] = {0,9,4,5,1,8,3,6,3,6,1,8,4,5,0,9};
 static int width = 10;
 static int height = 10;
 static int pp = 16;
-
+*/
 /*
 #define _BWIDTH 10
 #define _BHEIGHT 18
@@ -71,6 +71,20 @@ static int width = 10;
 static int height = 18;
 static int pp = 36;
 */
+#define _BWIDTH 15
+#define _BHEIGHT 15
+static int board[15][15] = {{0}};
+static int cellboard[15][15] = {{0}};
+static int pval[] = {2,4,3,2,2,20,2,2,3,2,5,10,2,2,15,24,4,35,15,28,2,3,4,6,2,5,2,2,10,4,3};
+static int xval[] = {0,1,9,11,13,6,12,13,14,0,10,12,3,5,9,13,7,12,0,3,7,1,7,2,0,3,7,0,1,8,12};
+static int yval[] = {0,0,0,0,0,1,1,1,2,3,3,3,4,4,4,5,6,7,8,8,8,9,9,10,12,12,13,14,14,14,14};
+static int width = 15;
+static int height = 15;
+static int pp = 31;
+
+
+
+
 static vector<int> changes_x;
 static vector<int> changes_y;
 static vector<int> changes_id;
