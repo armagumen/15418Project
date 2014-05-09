@@ -286,42 +286,43 @@ int sync_board(int rank, int total_procs){
 	// Convert the board to an array and fill it
 	int* board_buffer = (int*) malloc(sizeof(int) * width * height);
 	int* cell_buffer = (int*) malloc(sizeof(int) * width * height);
+	
+	// Allocate space for receiving the counts
 	int* rcv_counts = (int^) malloc(sizeof(int) * total_procs);
+	// Get the amount of updates to send
+	int* send_count;
+	*send_count = changes_id.size();
 
-	int* send_count = 
+	// Gather the update sizes
+	MPI_Allgather(send_count, 1, MPI_INT, rcv_counts, 
+		total_procs, MPI_INT, MPI_COMM_WORLD);
+
+	// Allocate the space to receive the updates
+	int total_rcv_count = 0;
+	for(int i = 0; i < total_procs; i++)
+		total_rcv_count += rcv_counts[i];
+	int* updates_x = (int*) malloc(sizeof(int) * total_rcv_count);
+	int* updates_y = (int*) malloc(sizeof(int) * total_rcv_count);
+	int* updates_num = (int*) malloc(sizeof(int) * total_rcv_count);
+
+	// Gather the updates
+	MPI_Allgather(&(changes_x[0]), send_count, MPI_INT, updates_x, 
+		rcv_counts, MPI_INT, MPI_COMM_WORLD);
+	MPI_Allgather(&(changes_y[0]), send_count, MPI_INT, updates_y, 
+		rcv_counts, MPI_INT, MPI_COMM_WORLD);
+	MPI_Allgather(&(changes_num[0]), send_count, MPI_INT, updates_num, 
+		rcv_counts, MPI_INT, MPI_COMM_WORLD);
+	
+	// Update the board
+	for(int i = 0; i < total_rcv_count; i++){
+		board[updates_y[i]][updates_x[i]] = [updates_num[i]];
+	}
+
 
 	// Allocate a buffer for all the elements
-	int total_rcv_count = width * height * total_procs;
+	total_rcv_count = width * height * total_procs;
 	int* all_buffer = (int*) malloc(sizeof(int) * total_rcv_count);
-	
-	for(int i = 0; i < width*height*total_procs; i++){
-		all_buffer[i] = 0;	
-	}
-	
-	// All to all the boards
-	MPI_Allgather(board_buffer, width * height, MPI_INT, all_buffer, 
-		width * height, MPI_INT, MPI_COMM_WORLD);
 
-	/*if(rank == 0){for(int i = 0; i < total_rcv_count; i++){
-		cout<<all_buffer[i]<<"-";
-	}
-	cout<<endl;}
-*/
-	// Clear the board 
-	for(int i = 0; i < height; i++)for(int j = 0; j < width; j++){
-		board[i][j] = 0;
-	}
-	// Create the new board
-	for(int p = 0; p < total_procs; p++){
-		for(int i = 0; i < height; i++){
-			for(int j = 0; j < width; j++){
-				point pt; pt.x = j; pt.y = i;
-					if(board[i][j] == 0){
-						board[i][j] = all_buffer[(p * width * height) + (i * width + j)];
-					}
-			}
-		}
-	}
 	// All to all the cellboards
 	MPI_Allgather(cell_buffer, width * height, MPI_INT, all_buffer, 
 		width * height, MPI_INT, MPI_COMM_WORLD);
@@ -341,8 +342,14 @@ int sync_board(int rank, int total_procs){
 			}
 		}
 	}
-
+	updates_x.clear();
+	updates_y.clear();
+	updates_num.clear();
 	//Free buffer memory
+	free(rcv_counts);
+	free(updates_x);
+	free(updates_y);
+	free(updates_num);
 	free(board_buffer);
 	free(cell_buffer);
 	free(all_buffer);
