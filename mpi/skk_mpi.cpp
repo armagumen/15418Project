@@ -369,14 +369,14 @@ int solve_mpi(int *argc, char ***argv){
 			filled.push_back(0);
 		}
 	}
-	if(rank == _PROC){
-	cout<<"size: "<<size<<endl;
-	cout<<"rank: "<<rank<<endl;
-	cout<<"printing ids"<<endl;
-	for(int i = 0; i < rects.size(); i++){
-		cout<<ids[i]<<endl;	
-	}
-	}
+	// if(rank == _PROC){
+	// cout<<"size: "<<size<<endl;
+	// cout<<"rank: "<<rank<<endl;
+	// cout<<"printing ids"<<endl;
+	// for(int i = 0; i < rects.size(); i++){
+	// 	cout<<ids[i]<<endl;	
+	// }
+	// }
 
 	total_squares = ids.size();
 	
@@ -436,7 +436,7 @@ int solve_mpi(int *argc, char ***argv){
 
 		// UPDATE BOARD IN ALL PROCESSES 
 		sync_board(rank, size);
-		if(rank == _PROC)printBoard();
+		///if(rank == _PROC)printBoard();
 	}
 	//cout<<"proc ended"<<endl;
   	MPI_Finalize();
