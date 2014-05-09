@@ -358,9 +358,9 @@ int solve_mpi(int *argc, char ***argv){
   MPI_Comm_size(MPI_COMM_WORLD, & size); // get number of processes
   	
   	// Set the ids on the board
-  	initBoard();
+  	initBoard(); 
 
-  	double start_time;
+  	double start_time; 
   	if(rank == 0)start_time = CycleTimer::currentSeconds();
 	// Make each processor generate it's rectangles, and the IDs it is
   	// responsible for
