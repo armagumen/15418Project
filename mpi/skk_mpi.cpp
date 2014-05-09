@@ -360,7 +360,8 @@ int solve_mpi(int *argc, char ***argv){
   	// Set the ids on the board
   	initBoard();
 
-  	if(rank == 0) double start_time = CycleTimer::currentSeconds();
+  	double start_time
+  	if(rank == 0)start_time = CycleTimer::currentSeconds();
 	// Make each processor generate it's rectangles, and the IDs it is
   	// responsible for
   	for(int i = 0; i < pp; i+=size){
