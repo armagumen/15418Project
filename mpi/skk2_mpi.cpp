@@ -58,10 +58,6 @@ static int yval[] = {0,9,4,5,1,8,3,6,3,6,1,8,4,5,0,9};
 static int width = 10;
 static int height = 10;
 static int pp = 16;
-static vector<int> changes_x;
-static vector<int> changes_y;
-static vector<int> changes_id;
-
 
 /*
 #define _BWIDTH 10
@@ -75,6 +71,10 @@ static int width = 10;
 static int height = 18;
 static int pp = 36;
 */
+static vector<int> changes_x;
+static vector<int> changes_y;
+static vector<int> changes_id;
+
 
 
 
@@ -281,44 +281,68 @@ int isAll(){
 //static int board_buffer[36];
 //static int cell_buffer[36];
 //static int all_buffer[72];
-
+static double total_comm = 0;
 int sync_board(int rank, int total_procs){
-	// Convert the board to an array and fill it
-	int* board_buffer = (int*) malloc(sizeof(int) * width * height);
-	int* cell_buffer = (int*) malloc(sizeof(int) * width * height);
-	
+    	double start = CycleTimer::currentSeconds();
 	// Allocate space for receiving the counts
-	int* rcv_counts = (int^) malloc(sizeof(int) * total_procs);
+	int* rcv_counts = (int*) malloc(sizeof(int) * total_procs);
+	
 	// Get the amount of updates to send
-	int* send_count;
-	*send_count = changes_id.size();
-
+	int send_count;
+	send_count = changes_id.size();
+	
 	// Gather the update sizes
-	MPI_Allgather(send_count, 1, MPI_INT, rcv_counts, 
-		total_procs, MPI_INT, MPI_COMM_WORLD);
+	MPI_Allgather(&send_count, 1, MPI_INT, rcv_counts, 
+		1, MPI_INT, MPI_COMM_WORLD);
 
 	// Allocate the space to receive the updates
 	int total_rcv_count = 0;
 	for(int i = 0; i < total_procs; i++)
 		total_rcv_count += rcv_counts[i];
+	
 	int* updates_x = (int*) malloc(sizeof(int) * total_rcv_count);
 	int* updates_y = (int*) malloc(sizeof(int) * total_rcv_count);
 	int* updates_num = (int*) malloc(sizeof(int) * total_rcv_count);
+	int* displacements = (int*)malloc(sizeof(int) * total_procs);
+	
+	int curr_displ = 0;
+	for(int i = 0; i < total_procs; i++){
+		displacements[i] = curr_displ;
+		curr_displ += rcv_counts[i];
+	}
+	//if(rank == 0){
+
+  	//}
+
 
 	// Gather the updates
-	MPI_Allgather(&(changes_x[0]), send_count, MPI_INT, updates_x, 
-		rcv_counts, MPI_INT, MPI_COMM_WORLD);
-	MPI_Allgather(&(changes_y[0]), send_count, MPI_INT, updates_y, 
-		rcv_counts, MPI_INT, MPI_COMM_WORLD);
-	MPI_Allgather(&(changes_id[0]), send_count, MPI_INT, updates_num, 
-		rcv_counts, MPI_INT, MPI_COMM_WORLD);
+	MPI_Allgatherv(&(changes_x[0]), send_count, MPI_INT, updates_x, 
+		rcv_counts, displacements, MPI_INT, MPI_COMM_WORLD);
+	MPI_Allgatherv(&(changes_y[0]), send_count, MPI_INT, updates_y, 
+		rcv_counts, displacements, MPI_INT, MPI_COMM_WORLD);
+	MPI_Allgatherv(&(changes_id[0]), send_count, MPI_INT, updates_num, 
+		rcv_counts, displacements, MPI_INT, MPI_COMM_WORLD);
+		
 	
 	// Update the board
 	for(int i = 0; i < total_rcv_count; i++){
-		board[updates_y[i]][updates_x[i]] = [updates_num[i]];
+		board[updates_y[i]][updates_x[i]] = updates_num[i];
 	}
 
+	// Free memory
+	free(rcv_counts);
+	free(updates_x);
+	free(updates_y);
+	free(updates_num);
 
+/*
+	// Convert the cellboard to an array and fill it
+	int* cell_buffer = (int*) malloc(sizeof(int) * width * height);
+	for(int i = 0; i < height; i++){
+		for(int j = 0; j < width; j++){
+			cell_buffer[(i * width) + j] = cellboard[i][j];
+		}
+	}
 	// Allocate a buffer for all the elements
 	total_rcv_count = width * height * total_procs;
 	int* all_buffer = (int*) malloc(sizeof(int) * total_rcv_count);
@@ -341,18 +365,18 @@ int sync_board(int rank, int total_procs){
 
 			}
 		}
-	}
-	updates_x.clear();
-	updates_y.clear();
-	updates_num.clear();
+	}*/
+	changes_x.clear();
+	changes_y.clear();
+	changes_id.clear();
 	//Free buffer memory
-	free(rcv_counts);
-	free(updates_x);
-	free(updates_y);
-	free(updates_num);
-	free(board_buffer);
-	free(cell_buffer);
-	free(all_buffer);
+	//free(cell_buffer);
+	//free(all_buffer);
+  if(rank == 0){
+    	double end = CycleTimer::currentSeconds();
+			total_comm += (end - start);
+    	printf("comm time: %.16f sec\n",  total_comm);
+  	}
 }
 #define _PROC 0
 int solve_mpi(int *argc, char ***argv){
@@ -431,26 +455,26 @@ int solve_mpi(int *argc, char ***argv){
 		sync_board(rank, size);
 		//if(rank == _PROC)printBoard();
 		// Remove invalid rectangles, for each ID
-		for(int i = 0; i < total_squares; i ++){
+		/*for(int i = 0; i < total_squares; i ++){
 			if(filled[i] != 1){
 				getValid(ids[i],&(rects[i]));
 			}	
-		}
+		}*/
 
 		// Check board positions covered by only one rectangle
-		set<point> only = getOnly();
+//		set<point> only = getOnly();
 
 		// ... and fill the board with such rectangles
-		for(int i = 0; i < total_squares; i++){
+	/*	for(int i = 0; i < total_squares; i++){
 			if(filled[i] != 1){
 				onlyFill(i, only);
 
 			}
-		}
+		}*/
 
 		// UPDATE BOARD IN ALL PROCESSES 
-		sync_board(rank, size);
-		///if(rank == _PROC)printBoard();
+		//sync_board(rank, size);
+	//	if(rank == _PROC)printBoard();
 	}
 	//cout<<"proc ended"<<endl;
   	MPI_Finalize();
