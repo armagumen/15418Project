@@ -161,8 +161,8 @@ void fillUp(int num, rectangle r){
 	for (int j = r.y1; j < r.y2+1;j++ ){
 		for (int i = r.x1; i < r.x2+1;i++){
 			board[j][i] = num;
-			changes_x.push_back[i];
-			changes_y.push_back[j];
+			changes_x.push_back(i);
+			changes_y.push_back(j);
 			changes_id.push_back[num];
 		}
 	}
@@ -236,8 +236,8 @@ void fillUpInd(int num,int x1,int x2,int y1, int y2){
 	for (int j = y1; j < y2+1;j++ ){
 		for (int i = x1; i < x2+1;i++){
 			board[j][i] = num;
-			changes_x.push_back[i];
-			changes_y.push_back[j];
+			changes_x.push_back(i);
+			changes_y.push_back(j);
 			changes_id.push_back[num];
 		}
 	}
